@@ -8,6 +8,23 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+func reader(conn *websocket.Conn) {
+	for {
+		//read in a message
+		messageType, p, err := conn.ReadMessage()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		//print out a reply for clarity
+		fmt.Println(string(p))
+		if err := conn.WriteMessage(messageType, p); err != nil {
+			log.Println(err)
+			return
+		}
+	}
+}
+
 // We'll need to define an Upgrader
 // this will require a Read and Write buffer size
 var upgrader = websocket.Upgrader{
@@ -21,12 +38,21 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 
 func wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+
 	// upgrade this connection to a WebSocket
 	// connection
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
 	}
+
+	err = ws.WriteMessage(1, []byte("Hi Client"))
+	if err != nil {
+		log.Println(err)
+	}
+
+	log.Println("client connected")
+	reader(ws)
 }
 
 func setupRoutes() {
